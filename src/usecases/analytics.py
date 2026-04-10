@@ -30,6 +30,17 @@ class AnalyticsService:
         """
         df = self.db.query(query)
         return self._tratar_df(df)
+
+    def processos_por_assunto(self, limit=10):
+        query = f"""
+            SELECT assunto, COUNT(*) as total 
+            FROM '{self.db.path}' 
+            GROUP BY assunto
+            ORDER BY total DESC
+            LIMIT {limit}
+        """
+        df = self.db.query(query)
+        return self._tratar_df(df)
     
     def empresas_mais_processadas(self, limit=5):
         query = f"""
@@ -88,3 +99,17 @@ class AnalyticsService:
         }
         
         return {k: (v if not (isinstance(v, float) and np.isnan(v)) else None) for k, v in stats.items()}
+    
+    def estatistica_percentual_finalizados(self):
+        query = f"""
+            SELECT 
+                estado, 
+                COUNT(*) as total_processos, 
+                SUM(CASE WHEN finalizado THEN 1 ELSE 0 END) as processos_finalizados,
+                (SUM(CASE WHEN finalizado THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as percentual_finalizados
+            FROM '{self.db.path}'
+            GROUP BY estado
+            ORDER BY percentual_finalizados DESC
+        """
+        df = self.db.query(query)
+        return self._tratar_df(df)

@@ -37,7 +37,8 @@ def render_processos_por_estado():
         x="estado",
         y="total",
         color="total",
-        labels={"total": "Nº de Processos"}
+        labels={"total": "Nº de Processos"},
+        color_continuous_scale="Viridis"
     )
 
     st.plotly_chart(style_fig(fig), width='stretch')
@@ -67,10 +68,14 @@ def render_maiores_litigantes():
         y="empresa_nome",
         orientation="h",
         text="total",
-        color="total"
+        color="total",
+        color_continuous_scale="Purp"
     )
 
-    fig.update_layout(yaxis={"categoryorder": "total ascending"})
+    fig.update_layout(
+        yaxis={"categoryorder": "total ascending"},
+        coloraxis_showscale=False
+    )
 
     st.plotly_chart(style_fig(fig), width='stretch')
 
@@ -117,17 +122,66 @@ def render_tempo_medio_por_estado():
         df,
         x="estado",
         y="tempo_medio_dias",
-        color="tempo_medio_dias"
+        color="tempo_medio_dias",
+        color_continuous_scale="YlOrRd"
     )
+
+    fig.update_traces(texttemplate='%{y:.0f}', textposition='outside')
 
     st.plotly_chart(style_fig(fig), use_container_width=True)
 
+def render_percentual_finalizados():
+    st.subheader("Eficiência por Estado - Finalizados (%)")
+    
+    df = pd.DataFrame(service.estatistica_percentual_finalizados())
+    
+    fig = px.bar(
+        df,
+        x="estado",
+        y="percentual_finalizados",
+        color="percentual_finalizados",
+        text=df["percentual_finalizados"].apply(lambda x: f'{x:.1f}%'),
+        labels={"percentual_finalizados": "Finalizado (%)", "estado": "Estado"},
+        color_continuous_scale="Viridis"
+    )
+    
+    fig.update_traces(textposition='outside')
+    st.plotly_chart(style_fig(fig), use_container_width=True)
+
+def render_processos_por_assunto():
+    st.subheader("Principais Assuntos")
+    
+    df = pd.DataFrame(service.processos_por_assunto(limit=10))
+    
+    df = df.dropna(subset=['assunto'])
+    df = df[df['assunto'].astype(str).str.lower() != "null"]
+    df = df[df['assunto'].str.strip() != ""]
+
+    fig = px.bar(
+        df,
+        x="total",
+        y="assunto",
+        orientation="h",
+        text="total",
+        color="total",
+        labels={"total": "Qtd Processos", "assunto": "Assunto"},
+        color_continuous_scale="Blues"
+    )
+
+    fig.update_layout(
+        yaxis={'categoryorder': 'total ascending'},
+        showlegend=False
+    )
+    
+    fig.update_traces(textposition='outside')
+
+    st.plotly_chart(style_fig(fig), use_container_width=True)
 
 def load_stats():
     return service.estatisticas_tempo_processo()
 
 def main():
-    st.title("⚖️ Processos Ambientais - TRF1")
+    st.title("⚖️ 🌱 Processos Ambientais - TRF1 (Amazônia Legal)")
     st.divider()
 
     stats = load_stats()
@@ -159,6 +213,14 @@ def main():
     st.divider()
 
     render_ranking_por_estado()
+
+    col5, col6 = st.columns(2)
+    with col5:
+        render_percentual_finalizados()
+    with col6:
+        render_processos_por_assunto()
+
+    st.divider()
 
 if __name__ == "__main__":
     main()

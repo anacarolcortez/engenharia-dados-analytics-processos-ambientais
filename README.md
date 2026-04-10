@@ -42,6 +42,6 @@ Escolhi o DuckDB por sua capacidade de executar consultas SQL complexas diretame
 
 Uma demonstração do dashboard interativo desenvolvido com Streamlit:
 
-![Dashboard Analytics TRF1](src/dashboard/graficos.png)
+![Dashboard Analytics TRF1](graficos.png)
 
-OBS: Os dados contidos no projeto não são representantes do todo, pois representam menos de 1% dos casos e não incluem grandes empresas. Foram escolhidos apenas para exemplificar um projeto de engenharia simples e replicável para outros contextos
+OBS: Os dados contidos no projeto não são representativos do todo, pois compreendem menos de 1% dos casos e não incluem grandes empresas, propositalmente. A amostra foi escolhida apenas para estudos de ETL

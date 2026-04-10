@@ -22,6 +22,13 @@ def get_processos_por_ano(service: AnalyticsService = Depends(get_analytics_serv
         raise HTTPException(status_code=404, detail="Dados não encontrados")
     return dados
 
+@app.get("/processos/por-assunto")
+def get_processos_por_assunto(service: AnalyticsService = Depends(get_analytics_service)):
+    dados = service.processos_por_assunto()
+    if not dados:
+        raise HTTPException(status_code=404, detail="Dados não encontrados")
+    return dados
+
 @app.get("/processos/cnpj/{cnpj}", response_model=List[Processo])
 def get_by_cnpj(cnpj: str, service: AnalyticsService = Depends(get_analytics_service)):
     dados = service.buscar_processos_por_cnpj(cnpj)
@@ -65,3 +72,9 @@ def get_estatisticas_tempo_processo(service: AnalyticsService = Depends(get_anal
         raise HTTPException(status_code=404, detail="Dados não encontrados")
     return dados
 
+@app.get("/estatisticas/percentual-finalizados")
+def get_estatistica_percentual_finalizados(service: AnalyticsService = Depends(get_analytics_service)):
+    dados = service.estatistica_percentual_finalizados()
+    if not dados:
+        raise HTTPException(status_code=404, detail="Dados não encontrados")
+    return dados
