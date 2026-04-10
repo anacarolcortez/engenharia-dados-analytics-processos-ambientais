@@ -1,6 +1,6 @@
-📚 Data Analytics com ETL
+# 📚 Data Analytics com ETL
 
-Projeto para exemplificar o trabalho de engenharia e análise de dados, utilizando extração de indicadores de processos ambientais em trâmite no TRF-1.A base de dados foi reduzida da original (que inclui mais de 80 mil processos) para fins didáticos, pois o foco do repositório é demonstrar como trabalhar com os dados extraídos da API DataJud e coletados em detalhes, pelo número do processo, por meio de webscraping no portal PJe. 
+Projeto para exemplificar o trabalho de engenharia e análise de dados, utilizando extração de indicadores de processos ambientais em trâmite no TRF-1 (Amazônia Legal). A base de dados foi reduzida da original (que inclui mais de 80 mil processos) para fins didáticos, pois o foco do repositório é demonstrar como trabalhar com os dados extraídos da API DataJud e coletados com mais detalhes pelo número do processo, por meio de webscraping no portal PJe. 
 
 Neste projeto, transforma-se dados brutos (Excel) em uma camada analítica performática utilizando DuckDB e Parquet.
 
@@ -38,7 +38,7 @@ Neste projeto, transforma-se dados brutos (Excel) em uma camada analítica perfo
 
 Escolhi o DuckDB por sua capacidade de executar consultas SQL complexas diretamente em arquivos Parquet, sendo ideal para cenários de Data Analytics onde a performance de leitura e agregação é prioridade, sem a necessidade de um servidor de banco de dados tradicional.
 
-## 📊 Visualização dos Dados (Dashboard)
+📊 Visualização dos Dados (Dashboard)
 
 Uma demonstração do dashboard interativo desenvolvido com Streamlit:
 
