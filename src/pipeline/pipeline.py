@@ -3,6 +3,20 @@ from duckdb import df
 import pandas as pd
 from pathlib import Path
 
+MAPA_EMPRESAS = {
+    'INSTITUTO BRASILEIRO DO MEIO AMBIENTE E DOS RECURSOS NATURAIS RENOVAVEIS': 'IBAMA',
+    'INSTITUTO BRASILEIRO DO MEIO AMBIENTE E DOS RECURSOS NATURAIS RENOVAVEIS - IBAMA': 'IBAMA',
+    'INSTITUTO BRASILEIRO DO MEIO AMBIENTE E DOS RECURSOS NATURAIS RENOVÁVEIS': 'IBAMA',
+    'INSTITUTO BRASILEIRO DO MEIO AMBIENTE E DOS RECURSOS NATURAIS RENOVÁVEIS - IBAMA': 'IBAMA',
+    'IBAMA': 'IBAMA',
+    'INSTITUTO NACIONAL DE COLONIZAÇÃO E REFORMA AGRÁRIA': 'INCRA',
+    'INSTITUTO NACIONAL DE COLONIZACAO E REFORMA AGRARIA': 'INCRA',
+    'INCRA': 'INCRA',
+    'MINISTÉRIO PÚBLICO FEDERAL': 'MPF',
+    'MINISTERIO PUBLICO FEDERAL': 'MPF',
+    'MPF': 'MPF',
+}
+
 def load_data(path: str) -> pd.DataFrame:
     df = pd.read_excel(path, dtype={'Número do Processo': str})
     df = df[df['Data de Distribuição'].notna()]
@@ -57,32 +71,46 @@ def extrair_estado(jurisdicao):
             
     return None
 
+def normalizar_empresa(nome):
+    if pd.isna(nome):
+        return None
+
+    nome = nome.upper().strip()
+
+    for k, v in MAPA_EMPRESAS.items():
+        if k in nome:
+            return v
+
+    return nome
+
 def extrair_empresa(texto):
     if pd.isna(texto):
         return pd.Series([None, None])
 
-    texto_limpo = texto.replace('\n', ' ')
-    match_cnpj = re.search(r'CNPJ:\s*([\d./-]+)', texto_limpo)
-    
-    if match_cnpj:
-        cnpj = match_cnpj.group(1).strip()
-        
-        # Trecho antes de " - CNPJ"
-        nome_match = re.search(r'(?:^|,\s*)(.*?)(?:\s-\sCNPJ|:)', texto_limpo)
-        nome = nome_match.group(1).strip() if nome_match else "DESCONHECIDO"
-        
-        # Exclusão de cargos públicos nas strigs
-        termos_ruido = [
-            r'\(IMPETRADO\)', r'\[ATIVO\]', r'\[PASSIVO\]', r'\(REU\)',
-            r'CHEFE\s*-\s*', r'SUPERINTENDENTE\s*.*?\s*-\s*', 
-            r'DIRETOR\s*.*?\s*-\s*', r'COORDENADOR\s*.*?\s*-\s*'
-        ]
-        for ruido in termos_ruido:
-            nome = re.sub(ruido, '', nome, flags=re.IGNORECASE).strip()
-        
-        nome = re.sub(r'^[,\-\s]+', '', nome).upper()
-        
-        return pd.Series([nome, cnpj])
+    texto = texto.replace('\n', ' ')
+
+    partes = [p.strip() for p in texto.split(',')]
+
+    for parte in partes:
+        if 'CNPJ' in parte:
+            match = re.search(r'(.*?)\s*-\s*CNPJ:\s*([\d./-]+)', parte)
+
+            if match:
+                nome = match.group(1).strip()
+                cnpj = match.group(2).strip()
+
+                termos_ruido = [
+                    r'\(IMPETRADO\)', r'\[ATIVO\]', r'\[PASSIVO\]', r'\(REU\)',
+                    r'CHEFE\s*-\s*', r'SUPERINTENDENTE\s*.*?\s*-\s*',
+                    r'DIRETOR\s*.*?\s*-\s*', r'COORDENADOR\s*.*?\s*-\s*'
+                ]
+
+                for ruido in termos_ruido:
+                    nome = re.sub(ruido, '', nome, flags=re.IGNORECASE).strip()
+
+                nome = re.sub(r'^[,\-\s]+', '', nome).upper()
+
+                return pd.Series([nome, cnpj])
 
     return pd.Series([None, None])
 
@@ -125,6 +153,7 @@ def transform_data(df: pd.DataFrame) -> pd.DataFrame:
     df['qtd_partes_ativas'] = df['Polo Ativo'].str.count(',') + 1
     df['tipo_parte_passiva'] = df['Polo Passivo'].apply(tipo_parte)
     df[['empresa_nome', 'empresa_cnpj']] = df['Polo Passivo'].apply(extrair_empresa)
+    df['empresa_nome'] = df['empresa_nome'].apply(normalizar_empresa)    
     df['tem_advogado'] = df['Polo Ativo'].str.contains('ADVOGADO', na=False)
     df['tempo_processo_dias'] = (
         df['ultima_movimentacao'] - df['data_distribuicao']
