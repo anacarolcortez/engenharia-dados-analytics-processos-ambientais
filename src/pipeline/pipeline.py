@@ -134,6 +134,12 @@ def extrair_empresa(texto):
 
     return pd.Series([None, None])
 
+def anonimizar_status(status):
+    if pd.isna(status):
+        return status
+
+    return re.sub(r'(?<=prazo de\s)[A-ZÀ-Úa-zà-ÿ\s]+(?=\sem)', ' PESSOA ', status, flags=re.IGNORECASE)
+
 def transform_data(df: pd.DataFrame) -> pd.DataFrame:
 
     df = df.copy()
@@ -161,7 +167,6 @@ def transform_data(df: pd.DataFrame) -> pd.DataFrame:
     df['ano_distribuicao'] = df['data_distribuicao'].dt.year.astype('Int64')
     df['classe_judicial'] = df['Classe Judicial'].str.split('(').str[0].str.strip()
     df['estado'] = df['Jurisdição'].apply(extrair_estado)
-    df['status_clean'] = df['Status'].str.upper()
     df['ultima_movimentacao'] = pd.to_datetime(
         df['Status'].str.extract(r'(\d{2}/\d{2}/\d{4})')[0],
         format='%d/%m/%Y',
@@ -169,7 +174,6 @@ def transform_data(df: pd.DataFrame) -> pd.DataFrame:
     )
     df['ano_ultima_movimentacao'] = df['ultima_movimentacao'].dt.year.astype('Int64')
     df['tem_movimentacao'] = df['ultima_movimentacao'].notna()
-    df['finalizado'] = df['status_clean'].str.contains('BAIXADO|ARQUIVADO', na=False)
     df['qtd_partes_ativas'] = df['Polo Ativo'].str.count(',') + 1
     df['tipo_parte_passiva'] = df['Polo Passivo'].apply(tipo_parte)
     df[['empresa_nome', 'empresa_cnpj']] = df['Polo Passivo'].apply(extrair_empresa)
@@ -180,6 +184,13 @@ def transform_data(df: pd.DataFrame) -> pd.DataFrame:
     ).dt.days
 
     df = df[df['empresa_cnpj'].notna()]
+
+    mask = df['tipo_parte_passiva'] == 'empresa'
+    df.loc[mask, 'Status'] = df.loc[mask, 'Status'].apply(anonimizar_status)
+    
+    df['status_clean'] = df['Status'].str.upper()
+    df['finalizado'] = df['status_clean'].str.contains('BAIXADO|ARQUIVADO', na=False)
+
     return df
 
 
