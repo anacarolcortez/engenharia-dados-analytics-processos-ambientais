@@ -26,7 +26,7 @@ Neste projeto, transforma-se dados brutos em uma camada analítica performática
 
     Instale as dependências: pip install -r requirements.txt
 
-    Processe os dados: python src/pipeline/pipeline.py
+    Processe os dados: python src/pipeline/main.py
 
     Suba a API: uvicorn src.app.api:app --reload
 

@@ -49,24 +49,36 @@ def _classificar_porte_real(row):
 
     return 'OUTROS'
 
-def _transformar_com_receita(df_processos, path: str) -> pd.DataFrame:
+def _transformar_com_receita(df_empresas, path: str, manter_detalhes=True) -> pd.DataFrame:
     colunas_interesse = ['cnpj_base', 'natureza_juridica', 'capital_social', 'porte']
     df_rf = pd.read_parquet(str(path), columns=colunas_interesse)
 
-    df_processos['cnpj_base'] = df_processos['empresa_cnpj'].str.replace(r'\D', '', regex=True).str[:8]
+    df_empresas['cnpj_base'] = df_empresas['empresa_cnpj'].str.replace(r'\D', '', regex=True).str[:8]
 
-    df_merge = pd.merge(df_processos, df_rf, on='cnpj_base', how='left')
+    df_merge = pd.merge(df_empresas, df_rf, on='cnpj_base', how='left')
     df_merge['categoria'] = df_merge.apply(_classificar_porte_real, axis=1)
+
+    if not manter_detalhes:
+        colunas_para_remover = ['natureza_juridica', 'capital_social', 'porte']
+        df_merge = df_merge.drop(columns=colunas_para_remover)
 
     return df_merge
 
 def run_pipeline():
-    BASE_DIR = Path(__file__).resolve().parent.parent.parent
-    original_path = BASE_DIR / "data" / "silver" / "empresas.parquet"
-    original_path_rf = BASE_DIR / "data" / "bronze" / "receita_federal_sample.parquet"
-    processed_path = BASE_DIR / "data" / "gold" / "insustentaveis.parquet"
+    BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+    base_path_empresas = BASE_DIR / "data" / "silver" / "empresas.parquet"
+    base_path_processos = BASE_DIR / "data" / "silver" / "processos.parquet"
+    base_path_rf = BASE_DIR / "data" / "bronze" / "receita_federal_sample.parquet"
+    processed_path_empresas = BASE_DIR / "data" / "gold" / "detalhe_empresas.parquet"
+    processed_path_processos = BASE_DIR / "data" / "gold" / "detalhe_processos.parquet"
 
-    df = _load_data(str(original_path))
-    df_final = _transformar_com_receita(df, original_path_rf)
-    df_final.to_parquet(str(processed_path))
-    return df_final
+    # Tabela empresas enriquecida
+    df = _load_data(str(base_path_empresas))
+    df_empresas = _transformar_com_receita(df, base_path_rf)
+    df_empresas.to_parquet(str(processed_path_empresas))
+
+    # Tabela processos enriquecida
+    df_processos = _load_data(str(base_path_processos))
+    df_processos = _transformar_com_receita(df_processos, base_path_rf, manter_detalhes=False)
+    df_processos.to_parquet(str(processed_path_processos))
+    return df_empresas, df_processos

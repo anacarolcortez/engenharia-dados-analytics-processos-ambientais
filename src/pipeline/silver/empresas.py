@@ -16,8 +16,8 @@ def _generate_empresas_parquet(df: pd.DataFrame, path: str) -> pd.DataFrame:
     return resultado
 
 def run_pipeline():
-    BASE_DIR = Path(__file__).resolve().parent.parent.parent
-    original_path = BASE_DIR / "data" / "gold" / "processos.parquet"
+    BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+    original_path = BASE_DIR / "data" / "silver" / "processos.parquet"
     processed_path = BASE_DIR / "data" / "silver" / "empresas.parquet"
 
     df = _load_data(str(original_path))
