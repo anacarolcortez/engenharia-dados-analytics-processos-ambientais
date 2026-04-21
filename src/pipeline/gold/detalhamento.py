@@ -35,9 +35,21 @@ def _classificar_porte_real(row):
     if nj.startswith('204') or nj.startswith('205') or 'S.A.' in nome or 'S/A' in nome:
         return 'GRANDE EMPRESA'
 
-    # Capital inicial acima de 1 milhão
-    if capital > 1000000:
+    # Análise por capital social
+    if capital > 50000000 or nj.startswith('204') or nj.startswith('205'):
+        return 'GIGANTE / MULTINACIONAL'
+
+    # GRANDE EMPRESA
+    if capital > 5000000 or 'S.A.' in nome or 'S/A' in nome:
         return 'GRANDE EMPRESA'
+
+    # MÉDIA EMPRESA
+    if capital > 1000000 or porte == 1:
+        return 'MÉDIA EMPRESA'
+
+    # PME (Pequenas e Micro)
+    if porte == 3 or porte == 5 or capital <= 1000000:
+        return 'PME / PEQUENO NEGÓCIO'
 
     # Porte informado na RF é 1 ou 0 (grandes/médias)
     if porte == 0 or porte == 1:

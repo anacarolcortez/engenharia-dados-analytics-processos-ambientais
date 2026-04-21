@@ -188,3 +188,33 @@ class AnalyticsService:
         """
         df = self.db.query(query)
         return self._tratar_df(df)
+    
+    def processos_por_porte(self):
+        query = f"""
+            SELECT 
+                categoria as porte, 
+                COUNT(*) as total,
+                ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentual
+            FROM '{self.db.path}'
+            WHERE categoria IS NOT NULL
+            GROUP BY ALL
+            ORDER BY total DESC
+        """
+        df = self.db.query(query)
+        return self._tratar_df(df)
+
+    def tempo_medio_por_porte_e_assunto(self):
+        query = f"""
+            SELECT 
+                categoria as porte,
+                assunto_especifico,
+                AVG(tempo_processo_dias) as tempo_medio_dias,
+                COUNT(*) as total_casos
+            FROM '{self.db.path}'
+            WHERE finalizado = True AND categoria IS NOT NULL
+            GROUP BY ALL
+            HAVING total_casos > 2
+            ORDER BY tempo_medio_dias DESC
+        """
+        df = self.db.query(query)
+        return self._tratar_df(df)

@@ -28,6 +28,8 @@ O projeto aplica uma camada de inteligência jurídica para categorizar processo
 
     Eficiência Processual: Monitoramento da taxa de encerramento de processos e tempo médio de tramitação por categoria específica
 
+    Classificação Econômica: Porte baseado no poder econômico real, cruzando CNPJs litigates com dados da Receita Federal. 
+
 🛠 Como executar
 
     Instale as dependências: pip install -r requirements.txt
