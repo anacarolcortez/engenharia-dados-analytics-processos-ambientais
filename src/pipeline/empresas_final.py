@@ -63,7 +63,7 @@ def _transformar_com_receita(df_processos, path: str) -> pd.DataFrame:
 def run_pipeline():
     BASE_DIR = Path(__file__).resolve().parent.parent.parent
     original_path = BASE_DIR / "data" / "processed" / "empresas.parquet"
-    original_path_rf = BASE_DIR / "data" / "raw" / "base_receita_consolidada.parquet"
+    original_path_rf = BASE_DIR / "data" / "raw" / "receita_federal_sample.parquet"
     processed_path = BASE_DIR / "data" / "processed" / "insustentaveis.parquet"
 
     df = _load_data(str(original_path))
