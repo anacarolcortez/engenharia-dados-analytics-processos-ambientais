@@ -226,8 +226,8 @@ def _build_analytical_dataset(df: pd.DataFrame) -> pd.DataFrame:
 
 def run_pipeline():
     BASE_DIR = Path(__file__).resolve().parent.parent.parent
-    raw_path = BASE_DIR / "data" / "raw" / "processos_teste.xlsx"
-    processed_path = BASE_DIR / "data" / "processed" / "processos.parquet"
+    raw_path = BASE_DIR / "data" / "bronze" / "processos_teste.xlsx"
+    processed_path = BASE_DIR / "data" / "gold" / "processos.parquet"
     
     df = _load_data(str(raw_path))
     df = _transform_data(df)
