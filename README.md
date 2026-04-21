@@ -4,6 +4,8 @@ Projeto para exemplificar o trabalho de engenharia e análise de dados, utilizan
 
 Neste projeto, transforma-se dados brutos em uma camada analítica performática utilizando DuckDB e Parquet. A pipeline simulou uma arquitetura medallion (camada bronze, silver e gold). 
 
+    DataJud + PJe (excel) & Base CNPJ Receita Federal -> Bronze (Parquet) -> Silver (Cleaned) -> Gold (Analytics)
+
 🏢 Arquitetura
 
     Engine: DuckDB (Processamento OLAP em memória)
@@ -14,13 +16,17 @@ Neste projeto, transforma-se dados brutos em uma camada analítica performática
 
     Data Wrangling: Pandas e Regex (normalização e anonimização de dados semi-estruturados)
 
-📈 Insights Analíticos Incluídos
+📈 Insights Analíticos e Recortes Jurídicos
 
-    Ranking de Litigiosidade: Identificação das empresas com maior volume de processos.
+O projeto aplica uma camada de inteligência jurídica para categorizar processos além das etiquetas básicas do tribunal, permitindo recortes por:
 
-    KPI de Performance: Tempo médio de tramitação por estado, maiores litigantes por região, porte e assunto.
+    Severidade de Risco: Classificação entre risco Alto (ex: Danos Ambientais), Médio (ex: Multas) e Baixo (ex: Taxas Administrativas).
 
-    Detecção de Sazonalidade: Volume de novos processos ao longo do tempo.
+    Temas Especializados: Identificação de pautas críticas como Mineração, Proteção de Flora/APP, Unidades de Conservação e Licenciamento.
+
+    Visão Financeira vs. Operacional: Separação entre processos de arrecadação (Tributário/TCFA) e processos de execução patrimonial (Dívida Ativa).
+
+    Eficiência Processual: Monitoramento da taxa de encerramento de processos e tempo médio de tramitação por categoria específica
 
 🛠 Como executar
 
