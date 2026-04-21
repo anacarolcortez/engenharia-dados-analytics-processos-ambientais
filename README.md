@@ -2,7 +2,7 @@
 
 Projeto para exemplificar o trabalho de engenharia e análise de dados, utilizando extração de indicadores de processos ambientais em trâmite no TRF-1 (Amazônia Legal). A base de dados foi reduzida da original (que inclui mais de 80 mil processos) para fins didáticos, pois o foco do repositório é demonstrar como trabalhar com os dados extraídos da API DataJud e coletados com mais detalhes pelo número do processo, por meio de webscraping no portal PJe. 
 
-Neste projeto, transforma-se dados brutos (Excel) em uma camada analítica performática utilizando DuckDB e Parquet.
+Neste projeto, transforma-se dados brutos em uma camada analítica performática utilizando DuckDB e Parquet. A pipeline simulou uma arquitetura medallion (camada bronze, silver e gold). 
 
 🏢 Arquitetura
 
@@ -18,7 +18,7 @@ Neste projeto, transforma-se dados brutos (Excel) em uma camada analítica perfo
 
     Ranking de Litigiosidade: Identificação das empresas com maior volume de processos.
 
-    KPI de Performance: Tempo médio de tramitação por estado e órgão julgador.
+    KPI de Performance: Tempo médio de tramitação por estado, maiores litigantes por região, porte e assunto.
 
     Detecção de Sazonalidade: Volume de novos processos ao longo do tempo.
 
@@ -44,9 +44,7 @@ Uma demonstração do dashboard interativo desenvolvido com Streamlit:
 
 ![Dashboard Analytics TRF1](graficos.png)
 
-OBS: Os dados contidos no projeto não são representativos do todo, pois compreendem menos de 1% dos casos e não incluem grandes empresas, propositalmente. A amostra foi escolhida apenas para estudos de ETL
-
 ------------------------------------------
-Este projeto utiliza dados anonimizados para fins educacionais.
+OBS: Os dados contidos no projeto não são representativos do todo e compreendem menos de 5% dos casos. A amostra foi escolhida aleatoriamente, sem considerar proporcionalidade nos recortes, para fins meramente educacionais.
 
-Informações pessoais (como CPF e nomes de pessoas físicas) foram removidas ou substituídas por identificadores fictícios, em conformidade com a LGPD (Lei nº 13.709/2018). Vale destacar que os dados sobre as partes envolvidas foram obtidos de webscraping no site do PJe do TRF-1.
+Informações pessoais foram removidas ou substituídas por identificadores fictícios, em conformidade com a LGPD (Lei nº 13.709/2018). Vale destacar que os dados sobre as partes envolvidas foram obtidos de webscraping no site do PJe do TRF-1.
