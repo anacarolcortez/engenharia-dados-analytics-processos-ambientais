@@ -1,6 +1,6 @@
 # 📚 Data Analytics com ETL
 
-Projeto para exemplificar o trabalho de engenharia e análise de dados, utilizando extração de indicadores de processos ambientais em trâmite no TRF-1 (Amazônia Legal). A base de dados foi reduzida da original (que inclui mais de 80 mil processos) para fins didáticos, pois o foco do repositório é demonstrar como trabalhar com os dados extraídos da API DataJud e coletados com mais detalhes pelo número do processo, por meio de webscraping no portal PJe. 
+Projeto para exemplificar o trabalho de engenharia e análise de dados, utilizando extração de indicadores de processos ambientais em trâmite no TRF-1 (Amazônia Legal). Este repositório possui apenas fins didáticos, para demonstrar como trabalhar com os dados extraídos da API DataJud e minerados em mais detalhes pelo número do processo, por meio de webscraping no portal PJe. 
 
 Neste projeto, transforma-se dados brutos em uma camada analítica performática utilizando DuckDB e Parquet. A pipeline simulou uma arquitetura medallion (camada bronze, silver e gold). 
 
@@ -52,7 +52,7 @@ Uma demonstração do dashboard interativo desenvolvido com Streamlit:
 
 ![Dashboard Analytics TRF1](graficos.png)
 
-------------------------------------------
-OBS: Os dados contidos no projeto não são representativos do todo e compreendem menos de 5% dos casos. A amostra foi escolhida aleatoriamente, sem considerar proporcionalidade nos recortes, para fins meramente educacionais.
+Também é possível visualizar em PDF (gerado do deploy do Streamlit)
 
-Informações pessoais foram removidas ou substituídas por identificadores fictícios, em conformidade com a LGPD (Lei nº 13.709/2018). Vale destacar que os dados sobre as partes envolvidas foram obtidos de webscraping no site do PJe do TRF-1.
+------------------------------------------
+OBS: Como a base original possui mais de 80 mil processos, expus apenas uma simulação com uma amostra bem pequena (menos de 1%) e não-representativa do todo, que inseri para testes.

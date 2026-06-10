@@ -80,7 +80,7 @@ def run_pipeline():
     BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
     base_path_empresas = BASE_DIR / "data" / "silver" / "empresas.parquet"
     base_path_processos = BASE_DIR / "data" / "silver" / "processos.parquet"
-    base_path_rf = BASE_DIR / "data" / "bronze" / "receita_federal_sample.parquet"
+    base_path_rf = BASE_DIR / "data" / "bronze" / "base_receita_consolidada.parquet"
     processed_path_empresas = BASE_DIR / "data" / "gold" / "detalhe_empresas.parquet"
     processed_path_processos = BASE_DIR / "data" / "gold" / "detalhe_processos.parquet"
 
