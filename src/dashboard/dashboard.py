@@ -70,7 +70,7 @@ def render_risco_financeiro():
         st.plotly_chart(style_fig(fig), use_container_width=True)
 
 def render_maiores_litigantes():
-    st.subheader("🏢 Maiores Litigantes (Geral)")
+    st.subheader("🏢 Maiores Processadas (Privadas)")
     df = pd.DataFrame(service.empresas_mais_processadas(limit=10))
     if not df.empty:
         fig = px.bar(
@@ -81,7 +81,7 @@ def render_maiores_litigantes():
         st.plotly_chart(style_fig(fig), use_container_width=True)
 
 def render_ranking_por_estado():
-    st.subheader("📍 Top Litigantes por Estado")
+    st.subheader("📍 Top Processadas (Privadas) por Estado")
     df = pd.DataFrame(service.ranking_empresas_por_estado(limit=10))
     if not df.empty:
         estado = st.selectbox("Selecione o Estado:", sorted(df["estado"].unique()))
@@ -101,8 +101,20 @@ def render_percentual_finalizados():
         )
         st.plotly_chart(style_fig(fig), use_container_width=True)
 
+def render_por_segmento():
+    st.subheader("🏭 Processos por Setor de Atuação")
+    df = pd.DataFrame(service.processos_por_segmento())
+    if not df.empty:
+        fig = px.bar(
+            df, x="total", y="setor_atuacao", orientation="h",
+            color="total", color_continuous_scale="Teal"
+        )
+        fig.update_layout(yaxis={"categoryorder": "total ascending"}, coloraxis_showscale=False)
+        st.plotly_chart(style_fig(fig), use_container_width=True)
+
 def render_tempo_por_categoria():
     st.subheader("⏳ Gargalos por Assunto (Tempo Médio)")
+    st.info("Empresas Privadas")
     df = pd.DataFrame(service.estatisticas_tempo_por_categoria())
     if not df.empty:
         fig = px.scatter(
@@ -112,7 +124,7 @@ def render_tempo_por_categoria():
         st.plotly_chart(style_fig(fig), use_container_width=True)
 
 def render_assunto_por_empresa():
-    st.subheader("🔍 Assuntos Detalhados por Empresa")
+    st.subheader("🔍 Assuntos por Empresa (Privada)")
     df = pd.DataFrame(service.processos_por_assunto_por_empresa(limit=50))
     if not df.empty:
         top_n = st.slider("Quantidade de Empresas", 3, 15, 5)
@@ -187,10 +199,9 @@ def main():
     
     st.divider()
 
-    col7, col8 = st.columns([1, 1])
+    col7, col8 = st.columns(2)
     with col7: render_percentual_finalizados()
-    with col8: st.info("ℹ️ As taxas de encerramento ajudam a identificar onde os processos estão travados na fase de execução.")
-
+    with col8: render_por_segmento()
     st.divider()
     render_assunto_por_empresa()
 

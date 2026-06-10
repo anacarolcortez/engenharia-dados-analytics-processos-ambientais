@@ -60,6 +60,7 @@ class AnalyticsService:
                 COUNT(*) as total 
             FROM '{self.db.path}' 
             WHERE empresa_nome IS NOT NULL
+            AND categoria != 'SETOR PUBLICO'
             GROUP BY ALL
             ORDER BY total DESC
             LIMIT {limit}
@@ -77,6 +78,7 @@ class AnalyticsService:
                 FROM '{self.db.path}'
                 WHERE empresa_cnpj IS NOT NULL
                 AND estado IS NOT NULL
+                AND categoria != 'SETOR PUBLICO'
                 GROUP BY estado, empresa_nome
                 QUALIFY ranking <= {limit}
                 ORDER BY estado, ranking
@@ -144,7 +146,7 @@ class AnalyticsService:
                 empresa_cnpj, 
                 COUNT(*) as total
             FROM '{self.db.path}'
-            WHERE empresa_nome IS NOT NULL
+            WHERE empresa_nome IS NOT NULL and categoria != 'SETOR PUBLICO'
             GROUP BY ALL
             ORDER BY total DESC
             LIMIT {limit}
@@ -215,6 +217,17 @@ class AnalyticsService:
             GROUP BY ALL
             HAVING total_casos > 2
             ORDER BY tempo_medio_dias DESC
+        """
+        df = self.db.query(query)
+        return self._tratar_df(df)
+    
+    def processos_por_segmento(self):
+        query = f"""
+            SELECT setor_atuacao, COUNT(*) as total 
+            FROM '{self.db.path}' 
+            GROUP BY setor_atuacao 
+            ORDER BY total DESC
+            LIMIT 10
         """
         df = self.db.query(query)
         return self._tratar_df(df)
