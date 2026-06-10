@@ -1,96 +1,201 @@
-import pandas as pd
 from pathlib import Path
+import duckdb
+import numpy as np
+import pandas as pd
 
-def _load_data(path: str) -> pd.DataFrame:
-    return pd.read_parquet(path)
-
-def _limpar_e_converter(valor):
-    if isinstance(valor, (int, float)):
-        return float(valor)
-    try:
-        valor_limpo = str(valor).replace('.', '').replace(',', '.')
-        return float(valor_limpo)
-    except:
-        return 0.0
+MAPEAMENTO_SETORES = {
+    # 01 a 03: Agropecuária, Agricultura e Pesca
+    "01": "Agropecuária e Agricultura", 
+    "02": "Agropecuária e Agricultura", 
+    "03": "Agropecuária e Agricultura",
     
-def _classificar_porte_real(row):
-    nj = str(row['natureza_juridica']).replace('-', '').replace('.', '')
-    nome = str(row['empresa_nome']).upper()
+    # 05 a 33: Indústria (Extrativa e Transformação)
+    "05": "Indústria Extrativa", 
+    "06": "Indústria Extrativa", 
+    "07": "Indústria Extrativa", 
+    "08": "Indústria Extrativa", 
+    "09": "Indústria Extrativa",
+    **{f"{i:02d}": "Indústria de Transformação" for i in range(10, 34)},
+    
+    "35": "Energia, Gás e Utilidades",
+    "36": "Saneamento e Meio Ambiente", 
+    "37": "Saneamento e Meio Ambiente", 
+    "38": "Saneamento e Meio Ambiente", 
+    "39": "Saneamento e Meio Ambiente",
+    "41": "Construção Civil", "42": "Construção Civil", 
+    "43": "Construção Civil",
+    "45": "Comércio Automotivo",
+    "46": "Comércio Atacadista",
+    "47": "Comércio Varejista",
+    "49": "Transporte e Logística", 
+    "50": "Transporte e Logística", 
+    "51": "Transporte e Logística", 
+    "52": "Transporte e Logística", 
+    "53": "Serviços Postais e Entrega",
+    "55": "Hotéis e Alojamento", 
+    "56": "Restaurantes e Alimentação",
+    "58": "Mídia e Edição", 
+    "59": "Produção Audiovisual e Música", 
+    "60": "Telecomunicações e rádio/TV", 
+    "61": "Telecomunicações e rádio/TV",
+    "62": "Tecnologia da Informação (TI)", 
+    "63": "Serviços de Informação e TI",
+    "64": "Bancos e Serviços Financeiros", 
+    "65": "Seguros e Previdência", 
+    "66": "Serviços Financeiros Auxiliares",
+    "68": "Mercado Imobiliário",
+    "69": "Serviços Jurídicos e Contabilidade",
+    "70": "Consultoria e Gestão Empresarial",
+    "71": "Arquitetura e Engenharia",
+    "72": "Pesquisa e Desenvolvimento",
+    "73": "Publicidade e Pesquisa de Mercado",
+    "74": "Design e Serviços Profissionais",
+    "75": "Serviços Veterinários",
+    "77": "Aluguel de Bens e Locação",
+    "78": "Recursos Humanos e Seleção",
+    "79": "Turismo e Agências de Viagem",
+    "80": "Segurança e Investigação",
+    "81": "Serviços para Edifícios e Paisagismo",
+    "82": "Serviços de Escritório e Apoio Administrativo",
+    "84": "Administração Pública e Defesa",
+    "85": "Educação e Ensino",
+    "86": "Saúde Humana e Hospitais", 
+    "87": "Assistência Social com Alojamento", 
+    "88": "Serviços Sociais e ONGs",
+    "90": "Artes, Cultura e Entretenimento", 
+    "91": "Museus e Parques Culturais", 
+    "92": "Casas de Apostas e Jogos", 
+    "93": "Esportes e Lazer",    
+    "94": "Organizações Sociais e Sindicatos",
+    "95": "Manutenção e Reparação de Bens",
+    "96": "Serviços Pessoais (Beleza, Lavanderia, etc.)",
+    "97": "Serviços Domésticos", 
+    "99": "Organizações Internacionais"
+}
 
-    try:
-        porte = int(float(row['porte']))
-    except:
-        porte = -1
+def _traduzir_setor_cnae(series_cnae: pd.Series) -> pd.Series:
+    cnae_limpo = (
+        series_cnae.astype(str)
+        .str.replace(r"\D", "", regex=True)
+        .str.zfill(7)
+    )
 
-    capital = _limpar_e_converter(row['capital_social'])
+    divisao_cnae = cnae_limpo.str[:2]
 
-    # HIERARQUIA DE CLASSIFICAÇÃO
+    return divisao_cnae.map(MAPEAMENTO_SETORES).fillna("SETOR NÃO IDENTIFICADO")
 
-    # Setor Público: Série 100
-    if nj.startswith('1'):
-        return 'SETOR PUBLICO'
+def _limpar_e_converter_vector(series):
+    if series.dtype == "object":
+        series = (
+            series.astype(str)
+            .str.replace(".", "", regex=False)
+            .str.replace(",", ".", regex=False)
+        )
+    return pd.to_numeric(series, errors="coerce").fillna(0.0)
 
-    # S.A. nunca é PME por lei
-    # Códigos que começam com 205 ou 204
-    if nj.startswith('204') or nj.startswith('205') or 'S.A.' in nome or 'S/A' in nome:
-        return 'GRANDE EMPRESA'
 
-    # Análise por capital social
-    if capital > 50000000 or nj.startswith('204') or nj.startswith('205'):
-        return 'GIGANTE / MULTINACIONAL'
+def _classificar_porte_vetorizado(df: pd.DataFrame) -> pd.Series:
+    if "natureza_juridica" not in df.columns:
+        return pd.Series("OUTROS", index=df.index)
 
-    # GRANDE EMPRESA
-    if capital > 5000000 or 'S.A.' in nome or 'S/A' in nome:
-        return 'GRANDE EMPRESA'
+    nj = (
+        df["natureza_juridica"]
+        .astype(str)
+        .str.replace("-", "", regex=False)
+        .str.replace(".", "", regex=False)
+    )
+    nome = df["empresa_nome"].astype(str).str.upper()
+    porte = pd.to_numeric(df["porte"], errors="coerce").fillna(-1).astype(int)
+    capital = _limpar_e_converter_vector(df["capital_social"])
 
-    # MÉDIA EMPRESA
-    if capital > 1000000 or porte == 1:
-        return 'MÉDIA EMPRESA'
+    is_sa = (
+        nj.str.startswith("204")
+        | nj.str.startswith("205")
+        | nome.str.contains("S.A.", regex=False)
+        | nome.str.contains("S/A", regex=False)
+    )
 
-    # PME (Pequenas e Micro)
-    if porte == 3 or porte == 5 or capital <= 1000000:
-        return 'PME / PEQUENO NEGÓCIO'
+    condicoes = [
+        nj.str.startswith("1"),  # 1. Setor Público
+        (capital > 50_000_000)
+        | nj.str.startswith("204")
+        | nj.str.startswith("205"),  # 2. Gigante
+        is_sa
+        | (capital > 5_000_000)
+        | (porte == 5),  # 3. Grande Empresa
+        (capital > 1_000_000),  # 4. Média Empresa
+        (porte == 1)
+        | (porte == 3)
+        | (capital <= 1_000_000),  # 5. PME
+    ]
 
-    # Porte informado na RF é 1 ou 0 (grandes/médias)
-    if porte == 0 or porte == 1:
-        return 'GRANDE EMPRESA'
+    resultados = [
+        "SETOR PUBLICO",
+        "GIGANTE / MULTINACIONAL",
+        "GRANDE EMPRESA",
+        "MÉDIA EMPRESA",
+        "PME / PEQUENO NEGÓCIO",
+    ]
 
-    # PME (Se o porte for 3 ou 5 E não passou nas regras de S.A.)
-    if porte == 3 or porte == 5:
-        return 'PME'
+    return np.select(condicoes, resultados, default="OUTROS")
 
-    return 'OUTROS'
+def _transformar_com_receita_e_cnae(
+    df_origem, path_rf_empresa: str, path_rf_estab: str, manter_detalhes=True
+) -> pd.DataFrame:
+    df_origem["cnpj_base"] = (
+        df_origem["empresa_cnpj"]
+        .astype(str)
+        .str.replace(r"\D", "", regex=True)
+        .str[:8]
+    )
 
-def _transformar_com_receita(df_empresas, path: str, manter_detalhes=True) -> pd.DataFrame:
-    colunas_interesse = ['cnpj_base', 'natureza_juridica', 'capital_social', 'porte']
-    df_rf = pd.read_parquet(str(path), columns=colunas_interesse)
+    con = duckdb.connect()
 
-    df_empresas['cnpj_base'] = df_empresas['empresa_cnpj'].str.replace(r'\D', '', regex=True).str[:8]
+    query = f"""
+        SELECT 
+            emp.cnpj_base,
+            emp.natureza_juridica,
+            emp.capital_social,
+            emp.porte,
+            estab.cnae_fiscal_principal,
+        FROM '{path_rf_empresa}' emp
+        LEFT JOIN '{path_rf_estab}' estab 
+            ON emp.cnpj_base = estab.cnpj_basico
+        WHERE emp.cnpj_base IN (SELECT cnpj_base FROM df_origem)
+    """
 
-    df_merge = pd.merge(df_empresas, df_rf, on='cnpj_base', how='left')
-    df_merge['categoria'] = df_merge.apply(_classificar_porte_real, axis=1)
+    df_rf_consolidado = con.execute(query).df()
+
+    df_rf_consolidado["cnpj_base"] = (df_rf_consolidado["cnpj_base"].astype(str).str.zfill(8))
+    df_rf_consolidado = df_rf_consolidado.drop_duplicates(subset=["cnpj_base"])
+
+    df_merge = pd.merge(df_origem, df_rf_consolidado, on="cnpj_base", how="left")
+    df_merge["categoria"] = _classificar_porte_vetorizado(df_merge)
+    df_merge["setor_atuacao"] = _traduzir_setor_cnae(df_merge["cnae_fiscal_principal"])
 
     if not manter_detalhes:
-        colunas_para_remover = ['natureza_juridica', 'capital_social', 'porte']
-        df_merge = df_merge.drop(columns=colunas_para_remover)
+        colunas_remover = ["natureza_juridica", "capital_social", "porte"]
+        df_merge = df_merge.drop(columns=colunas_remover, errors="ignore")
 
     return df_merge
 
+
 def run_pipeline():
     BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
-    base_path_empresas = BASE_DIR / "data" / "silver" / "empresas.parquet"
+
     base_path_processos = BASE_DIR / "data" / "silver" / "processos.parquet"
-    base_path_rf = BASE_DIR / "data" / "bronze" / "base_receita_consolidada.parquet"
-    processed_path_empresas = BASE_DIR / "data" / "gold" / "detalhe_empresas.parquet"
-    processed_path_processos = BASE_DIR / "data" / "gold" / "detalhe_processos.parquet"
+    base_path_rf_empresa = (BASE_DIR / "data" / "bronze" / "base_receita_consolidada.parquet")
+    base_path_rf_estab = (BASE_DIR / "data" / "bronze" / "estabelecimentos_consolidado.parquet")
+    processed_path_processos = (BASE_DIR / "data" / "gold" / "detalhe_processos.parquet")
 
-    # Tabela empresas enriquecida
-    df = _load_data(str(base_path_empresas))
-    df_empresas = _transformar_com_receita(df, base_path_rf)
-    df_empresas.to_parquet(str(processed_path_empresas))
 
-    # Tabela processos enriquecida
-    df_processos = _load_data(str(base_path_processos))
-    df_processos = _transformar_com_receita(df_processos, base_path_rf, manter_detalhes=False)
-    df_processos.to_parquet(str(processed_path_processos))
-    return df_empresas, df_processos
+    df_proc = pd.read_parquet(str(base_path_processos))
+    df_processos_gold = _transformar_com_receita_e_cnae(
+        df_proc,
+        str(base_path_rf_empresa),
+        str(base_path_rf_estab),
+        manter_detalhes=False,
+    )
+    df_processos_gold.to_parquet(str(processed_path_processos))
+
+    return df_processos_gold

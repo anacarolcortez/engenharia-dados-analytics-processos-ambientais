@@ -25,7 +25,6 @@ if __name__ == "__main__":
     df_empresas = empresas.run_pipeline()
     print(f"Total de empresas: {len(df_empresas)}")
 
-    print("Enriquecendo base de empresas e processos...")
-    df_empresas_classificadas, df_processos_classificados = detalhamento.run_pipeline()
-    print(f"Total de empresas classificadas: {len(df_empresas_classificadas)}")
+    print("Enriquecendo base de processos...")
+    df_processos_classificados = detalhamento.run_pipeline()
     print(f"Total de processos enriquecidos: {len(df_processos_classificados)}")
