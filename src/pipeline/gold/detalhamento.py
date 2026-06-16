@@ -104,7 +104,7 @@ def _classificar_porte_vetorizado(df: pd.DataFrame) -> pd.Series:
         .str.replace("-", "", regex=False)
         .str.replace(".", "", regex=False)
     )
-    nome = df["empresa_nome"].astype(str).str.upper()
+    nome = df["empresa_polo_passivo_nome"].astype(str).str.upper()
     porte = pd.to_numeric(df["porte"], errors="coerce").fillna(-1).astype(int)
     capital = _limpar_e_converter_vector(df["capital_social"])
 
@@ -143,7 +143,7 @@ def _transformar_com_receita_e_cnae(
     df_origem, path_rf_empresa: str, path_rf_estab: str, manter_detalhes=True
 ) -> pd.DataFrame:
     df_origem["cnpj_base"] = (
-        df_origem["empresa_cnpj"]
+        df_origem["empresa_polo_passivo_cnpj"]
         .astype(str)
         .str.replace(r"\D", "", regex=True)
         .str[:8]

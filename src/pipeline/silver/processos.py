@@ -20,7 +20,6 @@ MAPA_EMPRESAS = {
     'MPF': 'MPF',
 }
 
-# Termos de ruído compilados globalmente para ganho de performance
 TERMOS_RUIDO = [
     re.compile(r'\(IMPETRADO\)', re.IGNORECASE),
     re.compile(r'\[ATIVO\]', re.IGNORECASE),
@@ -33,6 +32,7 @@ TERMOS_RUIDO = [
 ]
 
 REGEX_CNPJ = re.compile(r'(.*?)\s*-\s*CNPJ:\s*([\d./-]+)')
+REGEX_ADVOGADO = re.compile(r'(.*?)\s*-\s*(OAB\s+\w+)', re.IGNORECASE)
 
 def _load_data(path: str) -> pd.DataFrame:
     df = pd.read_excel(path, dtype={'Número do Processo': str})
@@ -87,11 +87,9 @@ def _categorizar_juridico(texto):
     
     t = str(texto).upper()
     
-    # 1. Filtro de Ruído Primário
     if any(kw in t for kw in ['AUXÍLIO EMERGENCIAL', 'ASSISTENCIAL', 'SEGURO-DEFESO', 'PREVIDENCIÁRIO', 'SINDICAL']):
         return "OUTROS (NÃO AMBIENTAL)"
 
-    # 2. Especificidades Temáticas (Subiram de prioridade para não caírem em "Dívida Ativa" puramente)
     if any(kw in t for kw in ['RESERVA LEGAL', 'ÁREA DE PRESERVAÇÃO PERMANENTE', 'APP', 'FLORA', 'FLORESTAS', 'MATA ATLÂNTICA']):
         return "PROTEÇÃO DE VEGETAÇÃO (FLORA/APP)"
         
@@ -125,7 +123,6 @@ def _categorizar_juridico(texto):
     if any(kw in t for kw in ['DANO AMBIENTAL', 'POLUIÇÃO', 'DEGRADAÇÃO', 'HÍDRICOS', 'AGROTÓXICOS']):
         return "DANO / REPARAÇÃO AMBIENTAL"
 
-    # 3. Execução genérica (Se não entrou em nenhuma ambiental anterior)
     if 'DÍVIDA ATIVA' in t:
         return "EXECUÇÃO DE DÍVIDA ATIVA"
 
@@ -134,9 +131,28 @@ def _categorizar_juridico(texto):
 
     return "OUTROS TEMAS AMBIENTAIS"
 
+def _extrair_advogados(texto):
+    if pd.isna(texto):
+        return None
+    
+    texto = str(texto).replace('\n', ' ')
+    partes = [p.strip() for p in texto.split(',')]
+    advogados_encontrados = []
+    
+    for parte in partes:
+        if 'ADVOGADO' in parte.upper():
+            match = REGEX_ADVOGADO.search(parte)
+            if match:
+                nome = match.group(1).strip().upper()
+                oab = match.group(2).strip().upper()
+                advogados_encontrados.append(f"{nome} - {oab}")
+                
+    return ", ".join(advogados_encontrados) if advogados_encontrados else None
+
 def _transform_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
+    # Mapeamento do Assunto
     df['assunto_especifico'] = df['Assunto'].apply(_categorizar_juridico)
     df['assunto_codigo'] = df['Assunto'].str.extract(r'\((\d+)\)').astype('Int64')
     df['assunto_raiz'] = (
@@ -147,6 +163,7 @@ def _transform_data(df: pd.DataFrame) -> pd.DataFrame:
         .str.upper()
     )
 
+    # Dados do Processo
     df['orgao_nome'] = df['Órgão Julgador'].str.split('Endereço').str[0].str.strip()
     df['data_distribuicao'] = pd.to_datetime(df['Data de Distribuição'], format='%d/%m/%Y', errors='coerce')
     df['ano_distribuicao'] = df['data_distribuicao'].dt.year.astype('Int64')
@@ -154,16 +171,20 @@ def _transform_data(df: pd.DataFrame) -> pd.DataFrame:
     df['estado'] = df['estado'].str.upper()
     df['ultima_movimentacao'] = pd.to_datetime(df['Status'].str.extract(r'(\d{2}/\d{2}/\d{4})')[0], format='%d/%m/%Y', errors='coerce')
     df['ano_ultima_movimentacao'] = df['ultima_movimentacao'].dt.year.astype('Int64')
-    df['tem_movimentacao'] = df['ultima_movimentacao'].notna()
-    df['qtd_partes_ativas'] = df['Polo Ativo'].str.count(',') + 1
-    df['tipo_parte_passiva'] = df['Polo Passivo'].apply(_tipo_parte)
-    df[['empresa_nome', 'empresa_cnpj']] = df['Polo Passivo'].apply(_extrair_empresa)
-    df['empresa_nome'] = df['empresa_nome'].apply(_normalizar_empresa)    
-    
-    df['tem_advogado'] = df['Polo Ativo'].str.contains('ADVOGADO', na=False)
     df['tempo_processo_dias'] = (df['ultima_movimentacao'] - df['data_distribuicao']).dt.days
 
-    df = df[df['empresa_cnpj'].notna()]     
+    # ENRIQUECIMENTO: POLO ATIVO
+    df[['empresa_polo_ativo_nome', 'empresa_polo_ativo_cnpj']] = df['Polo Ativo'].apply(_extrair_empresa)
+    df['empresa_polo_ativo_nome'] = df['empresa_polo_ativo_nome'].apply(_normalizar_empresa)
+    df['adv_ativo'] = df['Polo Ativo'].apply(_extrair_advogados)
+
+    # ENRIQUECIMENTO: POLO PASSIVO
+    df[['empresa_polo_passivo_nome', 'empresa_polo_passivo_cnpj']] = df['Polo Passivo'].apply(_extrair_empresa)
+    df['empresa_polo_passivo_nome'] = df['empresa_polo_passivo_nome'].apply(_normalizar_empresa)
+    df['adv_passivo'] = df['Polo Passivo'].apply(_extrair_advogados)
+
+    # Status final do processo
+    df = df[df['empresa_polo_passivo_cnpj'].notna()]     
     df['status'] = df['Status'].str.upper()
     df['finalizado'] = df['status'].str.contains('BAIXADO|ARQUIVADO', na=False)
 
@@ -173,9 +194,9 @@ def _build_analytical_dataset(df: pd.DataFrame) -> pd.DataFrame:
     colunas = [
         'Número do Processo', 'assunto_codigo', 'assunto_raiz', 'assunto_especifico',
         'Jurisdição', 'orgao_nome', 'classe_judicial', 'estado', 'status',
-        'qtd_partes_ativas', 'tipo_parte_passiva', 'empresa_nome', 'empresa_cnpj',
-        'tem_advogado', 'ano_distribuicao', 'ano_ultima_movimentacao', 'tempo_processo_dias',
-        'finalizado'
+        'empresa_polo_ativo_nome', 'empresa_polo_ativo_cnpj', 'adv_ativo', 
+        'empresa_polo_passivo_nome', 'empresa_polo_passivo_cnpj', 'adv_passivo', 
+        'ano_distribuicao', 'ano_ultima_movimentacao', 'tempo_processo_dias', 'finalizado'
     ]
 
     df_final = df[colunas].copy()

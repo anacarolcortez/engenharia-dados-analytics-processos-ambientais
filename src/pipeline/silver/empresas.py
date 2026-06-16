@@ -5,8 +5,8 @@ def _load_data(path: str) -> pd.DataFrame:
     return pd.read_parquet(path)
 
 def _generate_empresas_parquet(df: pd.DataFrame, path: str) -> pd.DataFrame:
-    resultado = df.groupby('empresa_cnpj').agg({
-        'empresa_nome': 'first',
+    resultado = df.groupby('empresa_polo_passivo_cnpj').agg({
+        'empresa_polo_passivo_nome': 'first',
         'estado': 'first',
         'numero_processo': 'count'
     }).rename(columns={'numero_processo': 'quantidade'}).reset_index()
