@@ -63,7 +63,7 @@ MAPEAMENTO_SETORES = {
     "87": "Assistência Social com Alojamento", 
     "88": "Serviços Sociais e ONGs",
     "90": "Artes, Cultura e Entretenimento", 
-    "91": "Museus e Parques Culturais", 
+    "91": "Proteção Ambiental", 
     "92": "Casas de Apostas e Jogos", 
     "93": "Esportes e Lazer",    
     "94": "Organizações Sociais e Sindicatos",

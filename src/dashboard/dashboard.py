@@ -74,7 +74,7 @@ def render_maiores_litigantes():
     df = pd.DataFrame(service.empresas_mais_processadas(limit=10))
     if not df.empty:
         fig = px.bar(
-            df, x="total", y="empresa_nome", orientation="h",
+            df, x="total", y="empresa_polo_passivo_nome", orientation="h",
             color="total", color_continuous_scale="Purp"
         )
         fig.update_layout(yaxis={"categoryorder": "total ascending"}, coloraxis_showscale=False)
@@ -86,7 +86,7 @@ def render_ranking_por_estado():
     if not df.empty:
         estado = st.selectbox("Selecione o Estado:", sorted(df["estado"].unique()))
         df_filtrado = df[df["estado"] == estado]
-        fig = px.bar(df_filtrado, x="total", y="empresa_nome", orientation="h", color="total")
+        fig = px.bar(df_filtrado, x="total", y="empresa_polo_passivo_nome", orientation="h", color="total")
         fig.update_layout(yaxis={"categoryorder": "total ascending"}, showlegend=False)
         st.plotly_chart(style_fig(fig), use_container_width=True)
 
@@ -128,10 +128,10 @@ def render_assunto_por_empresa():
     df = pd.DataFrame(service.processos_por_assunto_por_empresa(limit=50))
     if not df.empty:
         top_n = st.slider("Quantidade de Empresas", 3, 15, 5)
-        top_empresas = df.groupby("empresa_nome")["total"].sum().nlargest(top_n).index
-        df_plot = df[df["empresa_nome"].isin(top_empresas)]
+        top_empresas = df.groupby("empresa_polo_passivo_nome")["total"].sum().nlargest(top_n).index
+        df_plot = df[df["empresa_polo_passivo_nome"].isin(top_empresas)]
         
-        fig = px.bar(df_plot, x="total", y="assunto_especifico", color="empresa_nome", orientation="h")
+        fig = px.bar(df_plot, x="total", y="assunto_especifico", color="empresa_polo_passivo_nome", orientation="h")
         st.plotly_chart(style_fig(fig, height=500), use_container_width=True)
 
 def render_analise_porte_e_tempo():

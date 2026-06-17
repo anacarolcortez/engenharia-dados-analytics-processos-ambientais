@@ -56,10 +56,10 @@ class AnalyticsService:
         query = f"""
             SELECT 
                 assunto_especifico, 
-                empresa_nome, 
+                empresa_polo_passivo_nome, 
                 COUNT(*) as total 
             FROM '{self.db.path}' 
-            WHERE empresa_nome IS NOT NULL
+            WHERE empresa_polo_passivo_nome IS NOT NULL
             AND categoria != 'SETOR PUBLICO'
             GROUP BY ALL
             ORDER BY total DESC
@@ -72,14 +72,14 @@ class AnalyticsService:
         query = f"""
                 SELECT 
                     estado, 
-                    empresa_nome, 
+                    empresa_polo_passivo_nome, 
                     COUNT(*) as total,
                     ROW_NUMBER() OVER (PARTITION BY estado ORDER BY COUNT(*) DESC) as ranking
                 FROM '{self.db.path}'
-                WHERE empresa_cnpj IS NOT NULL
+                WHERE empresa_polo_passivo_cnpj IS NOT NULL
                 AND estado IS NOT NULL
                 AND categoria != 'SETOR PUBLICO'
-                GROUP BY estado, empresa_nome
+                GROUP BY estado, empresa_polo_passivo_nome
                 QUALIFY ranking <= {limit}
                 ORDER BY estado, ranking
             """
@@ -105,7 +105,7 @@ class AnalyticsService:
         cnpj_numeros = re.sub(r'\D', '', cnpj_input)
         query = f"""
             SELECT 
-                empresa_nome,
+                empresa_polo_passivo_nome,
                 numero_processo, 
                 ano_distribuicao, 
                 assunto,
@@ -116,7 +116,7 @@ class AnalyticsService:
                 finalizado,
                 tempo_processo_dias
             FROM '{self.db.path}'
-            WHERE regexp_replace(empresa_cnpj, '[^0-9]', '', 'g') = '{cnpj_numeros}'
+            WHERE regexp_replace(empresa_polo_passivo_cnpj, '[^0-9]', '', 'g') = '{cnpj_numeros}'
             ORDER BY ano_distribuicao DESC
         """
         df = self.db.query(query)
@@ -142,11 +142,11 @@ class AnalyticsService:
     def empresas_mais_processadas(self, limit=10):
         query = f"""
             SELECT 
-                empresa_nome, 
-                empresa_cnpj, 
+                empresa_polo_passivo_nome, 
+                empresa_polo_passivo_cnpj, 
                 COUNT(*) as total
             FROM '{self.db.path}'
-            WHERE empresa_nome IS NOT NULL and categoria != 'SETOR PUBLICO'
+            WHERE empresa_polo_passivo_nome IS NOT NULL and categoria != 'SETOR PUBLICO'
             GROUP BY ALL
             ORDER BY total DESC
             LIMIT {limit}
