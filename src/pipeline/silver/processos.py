@@ -193,7 +193,7 @@ def _transform_data(df: pd.DataFrame) -> pd.DataFrame:
 def _build_analytical_dataset(df: pd.DataFrame) -> pd.DataFrame:
     colunas = [
         'Número do Processo', 'assunto_codigo', 'assunto_raiz', 'assunto_especifico',
-        'Jurisdição', 'orgao_nome', 'classe_judicial', 'estado', 'orgao_processo', 'cidade_processo',
+        'Jurisdição', 'orgao_nome', 'classe_judicial', 'estado',
         'status', 'empresa_polo_ativo_nome', 'empresa_polo_ativo_cnpj', 'adv_ativo',
         'empresa_polo_passivo_nome', 'empresa_polo_passivo_cnpj', 'adv_passivo',
         'ano_distribuicao', 'ano_ultima_movimentacao', 'tempo_processo_dias', 'finalizado'
