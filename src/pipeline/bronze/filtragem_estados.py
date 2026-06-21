@@ -48,42 +48,69 @@ MAPEAMENTO_ESTADOS = {
 def _load_data(path: str) -> pd.DataFrame:
     df = pd.read_excel(path, dtype={'Número do Processo': str})
     df = df[df['Data de Distribuição'].notna()]
+
+    df['Número do Processo'] = (
+        df['Número do Processo']
+        .astype(str)
+        .str.replace(r'\D', '', regex=True)
+        .str.zfill(20)
+    )
+
     return df
 
 def _extrair_estado(jurisdicao):
     if pd.isna(jurisdicao):
         return None
-
     texto = str(jurisdicao).strip()
-
     match = REGEX_UF.search(texto)
     if match:
         return match.group(1)
-
     texto_lower = texto.lower()
-
     for estado, uf in MAPEAMENTO_ESTADOS.items():
         if re.search(rf'\b{re.escape(estado)}\b', texto_lower):
             return uf
-
     return None
 
 def _filtrar_estados(df: pd.DataFrame) -> pd.DataFrame:
     ESTADOS_AMAZONIA_LEGAL = {
         'AC', 'AM', 'AP', 'MA', 'MT', 'PA', 'RO', 'RR', 'TO'
     }
-
     df = df.copy()
     df['estado'] = df['Jurisdição'].apply(_extrair_estado)
     return df[df['estado'].isin(ESTADOS_AMAZONIA_LEGAL)]
-    
+
+def _enriquecer_com_orgao_cidade(df: pd.DataFrame, path_datajud: str) -> pd.DataFrame:
+    df_datajud = pd.read_parquet(
+        path_datajud,
+        columns=["numero", "orgao_processo", "cidade_processo"],
+    )
+
+    chave_df = df['Número do Processo'].astype(str).str.replace(r'\D', '', regex=True).str.zfill(20)
+    chave_datajud = df_datajud['numero'].astype(str).str.replace(r'\D', '', regex=True).str.zfill(20)
+
+    df = df.copy()
+    df['_chave_numero'] = chave_df
+
+    df_datajud = df_datajud.assign(_chave_numero=chave_datajud).drop_duplicates(subset='_chave_numero')
+
+    df = df.merge(
+        df_datajud[['_chave_numero', 'orgao_processo', 'cidade_processo']],
+        on='_chave_numero',
+        how='left',
+    ).drop(columns='_chave_numero')
+
+    return df
 
 def run_pipeline():
     BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
     base_path_processos = BASE_DIR / "data" / "bronze" / "trf1_completos.xlsx"
+    path_datajud = BASE_DIR / "data" / "bronze" / "datajud_processos_orgao_cidade.parquet"
     processed_path_processos = BASE_DIR / "data" / "bronze" / "trf1_filtrados.xlsx"
 
     df_processos = _load_data(str(base_path_processos))
     df_processos = _filtrar_estados(df_processos)
+    df_processos = _enriquecer_com_orgao_cidade(df_processos, str(path_datajud))
+
     df_processos.to_excel(str(processed_path_processos), index=False)
+
     return df_processos

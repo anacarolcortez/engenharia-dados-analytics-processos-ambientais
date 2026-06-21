@@ -7,7 +7,6 @@ sys.path.append(str(parent))
 
 from pipeline.gold import detalhamento
 import pipeline.silver.processos as processos
-import pipeline.silver.empresas as empresas
 import pipeline.bronze.filtragem_estados as filtragem_estados
 
 
@@ -20,10 +19,6 @@ if __name__ == "__main__":
     df_processos = processos.run_pipeline()
     print(f"Total de processos com empresas processadas: {len(df_processos)}")
     print(f"Período: {df_processos['ano_distribuicao'].min()} - {df_processos['ano_distribuicao'].max()}")
-
-    print("Gerando base de empresas...")
-    df_empresas = empresas.run_pipeline()
-    print(f"Total de empresas: {len(df_empresas)}")
 
     print("Enriquecendo base de processos...")
     df_processos_classificados = detalhamento.run_pipeline()
