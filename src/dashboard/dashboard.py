@@ -106,7 +106,7 @@ def render_por_segmento():
     df = pd.DataFrame(service.processos_por_segmento())
     if not df.empty:
         fig = px.bar(
-            df, x="total", y="setor_atuacao", orientation="h",
+            df, x="total", y="setor_atuacao_passivo", orientation="h",
             color="total", color_continuous_scale="Teal"
         )
         fig.update_layout(yaxis={"categoryorder": "total ascending"}, coloraxis_showscale=False)

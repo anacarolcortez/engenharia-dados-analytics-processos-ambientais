@@ -60,7 +60,7 @@ class AnalyticsService:
                 COUNT(*) as total 
             FROM '{self.db.path}' 
             WHERE empresa_polo_passivo_nome IS NOT NULL
-            AND categoria != 'SETOR PUBLICO'
+            AND categoria_passivo != 'SETOR PUBLICO'
             GROUP BY ALL
             ORDER BY total DESC
             LIMIT {limit}
@@ -78,7 +78,7 @@ class AnalyticsService:
                 FROM '{self.db.path}'
                 WHERE empresa_polo_passivo_cnpj IS NOT NULL
                 AND estado IS NOT NULL
-                AND categoria != 'SETOR PUBLICO'
+                AND categoria_passivo != 'SETOR PUBLICO'
                 GROUP BY estado, empresa_polo_passivo_nome
                 QUALIFY ranking <= {limit}
                 ORDER BY estado, ranking
@@ -146,7 +146,7 @@ class AnalyticsService:
                 empresa_polo_passivo_cnpj, 
                 COUNT(*) as total
             FROM '{self.db.path}'
-            WHERE empresa_polo_passivo_nome IS NOT NULL and categoria != 'SETOR PUBLICO'
+            WHERE empresa_polo_passivo_nome IS NOT NULL and categoria_passivo != 'SETOR PUBLICO'
             GROUP BY ALL
             ORDER BY total DESC
             LIMIT {limit}
@@ -194,11 +194,11 @@ class AnalyticsService:
     def processos_por_porte(self):
         query = f"""
             SELECT 
-                categoria as porte, 
+                categoria_passivo as porte, 
                 COUNT(*) as total,
                 ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentual
             FROM '{self.db.path}'
-            WHERE categoria IS NOT NULL
+            WHERE categoria_passivo IS NOT NULL
             GROUP BY ALL
             ORDER BY total DESC
         """
@@ -208,12 +208,12 @@ class AnalyticsService:
     def tempo_medio_por_porte_e_assunto(self):
         query = f"""
             SELECT 
-                categoria as porte,
+                categoria_passivo as porte,
                 assunto_especifico,
                 AVG(tempo_processo_dias) as tempo_medio_dias,
                 COUNT(*) as total_casos
             FROM '{self.db.path}'
-            WHERE finalizado = True AND categoria IS NOT NULL
+            WHERE finalizado = True AND categoria_passivo IS NOT NULL
             GROUP BY ALL
             HAVING total_casos > 2
             ORDER BY tempo_medio_dias DESC
@@ -223,9 +223,9 @@ class AnalyticsService:
     
     def processos_por_segmento(self):
         query = f"""
-            SELECT setor_atuacao, COUNT(*) as total 
+            SELECT setor_atuacao_passivo, COUNT(*) as total 
             FROM '{self.db.path}' 
-            GROUP BY setor_atuacao 
+            GROUP BY setor_atuacao_passivo 
             ORDER BY total DESC
             LIMIT 10
         """

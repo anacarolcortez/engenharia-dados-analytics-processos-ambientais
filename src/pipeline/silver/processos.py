@@ -188,6 +188,8 @@ def _transform_data(df: pd.DataFrame) -> pd.DataFrame:
     df['status'] = df['Status'].str.upper()
     df['finalizado'] = df['status'].str.contains('BAIXADO|ARQUIVADO', na=False)
 
+    #df['tem_empresa_processada'] = df['empresa_polo_passivo_cnpj'].notna()
+
     return df
 
 def _build_analytical_dataset(df: pd.DataFrame) -> pd.DataFrame:
